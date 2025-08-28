@@ -1,0 +1,26 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.linear_model import LinearRegression
+
+# بيانات تجريبية
+X = np.array([[1], [2], [3], [4], [5]])   # ساعات المذاكرة
+y = np.array([1.5, 3.5, 4.5, 6.5, 8.0])  # الدرجات
+
+# إنشاء النموذج وتدريبه
+model = LinearRegression()
+model.fit(X, y)
+
+# التنبؤ
+y_pred = model.predict(X)
+
+# الطباعة
+print("الميل (slope):", model.coef_)
+print("التقاطع (intercept):", model.intercept_)
+
+# الرسم
+plt.scatter(X, y, color='blue', label="البيانات الحقيقية")
+plt.plot(X, y_pred, color='red', label="الخط المستقيم")
+plt.xlabel("ساعات المذاكرة")
+plt.ylabel("الدرجة")
+plt.legend()
+plt.show()
