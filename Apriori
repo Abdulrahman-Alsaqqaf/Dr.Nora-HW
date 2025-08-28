@@ -1,0 +1,29 @@
+# تثبيت المكتبة (لو مش مثبتة)
+# pip install mlxtend
+
+import pandas as pd
+from mlxtend.frequent_patterns import apriori, association_rules
+
+# مثال: بيانات سلة مشتريات
+dataset = [
+    ['milk', 'bread', 'nuts'],
+    ['milk', 'bread'],
+    ['milk', 'apple'],
+    ['bread', 'butter'],
+    ['milk', 'bread', 'butter']
+]
+
+# تحويل البيانات إلى DataFrame بشكل one-hot encoding
+from mlxtend.preprocessing import TransactionEncoder
+te = TransactionEncoder()
+te_data = te.fit(dataset).transform(dataset)
+df = pd.DataFrame(te_data, columns=te.columns_)
+
+# تطبيق Apriori
+frequent_itemsets = apriori(df, min_support=0.4, use_colnames=True)
+
+# استخراج قواعد الترابط
+rules = association_rules(frequent_itemsets, metric="confidence", min_threshold=0.6)
+
+print(frequent_itemsets)
+print(rules)
