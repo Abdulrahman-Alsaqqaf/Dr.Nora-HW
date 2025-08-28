@@ -1,0 +1,225 @@
+# -*- coding: utf-8 -*-
+"""
+Hangman (لعبة الرجل المشنوق) - نسخة طرفية Terminal
+ميزات:
+- قائمة كلمات افتراضية + إمكانية القراءة من ملف (اختياري)
+- رسومات ASCII لكل محاولة
+- فحص الإدخال (حرف واحد، حرف أبجدي، غير مُجرَّب من قبل)
+- يحتفظ بالأحرف الصحيحة والخاطئة
+- عداد محاولات ومحاولة لعب مرة أخرى
+"""
+
+import random
+import os
+import sys
+import string
+
+# --------- رسومات المشنقة (من 0 حتى آخر محاولة) ----------
+HANGMANPICS = [
+    r"""
+     +---+
+     |   |
+         |
+         |
+         |
+         |
+   =========""",
+    r"""
+     +---+
+     |   |
+     O   |
+         |
+         |
+         |
+   =========""",
+    r"""
+     +---+
+     |   |
+     O   |
+     |   |
+         |
+         |
+   =========""",
+    r"""
+     +---+
+     |   |
+     O   |
+    /|   |
+         |
+         |
+   =========""",
+    r"""
+     +---+
+     |   |
+     O   |
+    /|\  |
+         |
+         |
+   =========""",
+    r"""
+     +---+
+     |   |
+     O   |
+    /|\  |
+    /    |
+         |
+   =========""",
+    r"""
+     +---+
+     |   |
+     O   |
+    /|\  |
+    / \  |
+         |
+   ========="""
+]
+
+# --------- قائمة كلمات افتراضية (انجليزي) ----------
+DEFAULT_WORDS = [
+    "python", "notebook", "dataset", "function", "variable",
+    "hangman", "analysis", "feature", "regression", "cluster",
+    "spark", "pandas", "numpy", "matplotlib", "database",
+    "hadoop", "kafka", "docker", "linux", "yemen"
+]
+
+def load_words_from_file(path):
+    """
+    يحمّل كلمات من ملف نصي (كل سطر كلمة).
+    يعيد قائمة كلمات صالحة (حروف فقط).
+    """
+    words = []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for line in f:
+                w = line.strip().lower()
+                # السماح بكلمات عربية أو إنجليزية مكوّنة من حروف فقط
+                if w and all(ch.isalpha() or ch == "-" for ch in w):
+                    words.append(w)
+    except FileNotFoundError:
+        return None
+    return words or None
+
+def pick_secret_word(words):
+    """يختار كلمة عشوائية من القائمة."""
+    return random.choice(words)
+
+def clear_screen():
+    """ينظّف الشاشة (اختياري للتجربة الأجمل)."""
+    if os.name == "nt":
+        os.system("cls")
+    else:
+        os.system("clear")
+
+def display_state(secret, correct_letters, wrong_letters, remaining):
+    """يعرض حالة اللعبة: الرسم، الكلمة مع الحروف المكتشفة، والأخطاء."""
+    stage_index = len(HANGMANPICS) - 1 - remaining
+    stage_index = max(0, min(stage_index, len(HANGMANPICS)-1))
+    print(HANGMANPICS[stage_index])
+    print("\nالكلمة:")
+    revealed = " ".join([ch if ch in correct_letters else "_" for ch in secret])
+    print("   ", revealed)
+    print("\nأخطاء:", " ".join(sorted(wrong_letters)) if wrong_letters else "لا يوجد")
+    print(f"المحاولات المتبقية: {remaining}")
+
+def get_valid_guess(used_letters, alphabet):
+    """
+    يطلب من اللاعب إدخال حرف صالح:
+    - حرف واحد
+    - حرف أبجدي
+    - غير مُستخدم سابقًا
+    """
+    while True:
+        guess = input("أدخل حرفًا (letter): ").strip().lower()
+        # دعم أساسي للحروف العربية أو الإنجليزية
+        if len(guess) != 1:
+            print("رجاءً أدخل حرفًا واحدًا فقط.")
+            continue
+        if not guess.isalpha():
+            print("رجاءً أدخل حرفًا أبجديًا.")
+            continue
+        if guess in used_letters:
+            print("هذا الحرف جرّبته من قبل. جرّب حرفًا آخر.")
+            continue
+        if alphabet and guess not in alphabet:
+            # في حال أردت تقييد الإدخال للاتينية فقط:
+            print("الحرف غير مسموح في هذه الجولة.")
+            continue
+        return guess
+
+def play_round(words, max_wrong=None):
+    """
+    يلعب جولة واحدة.
+    - max_wrong: أقصى عدد أخطاء قبل الخسارة (افتراضيًا يساوي طول الرسومات-1)
+    """
+    secret = pick_secret_word(words)
+    # نسمح بحروف عربية/إنجليزية. إن حبيت تقصر على الإنجليزية فقط، استخدم string.ascii_lowercase
+    alphabet = None  # أو: set(string.ascii_lowercase)
+    correct_letters = set()
+    wrong_letters = set()
+
+    # أقصى أخطاء = عدد مراحل الرسم - 1 (حتى آخر شكل هو الخسارة)
+    if max_wrong is None:
+        max_wrong = len(HANGMANPICS) - 1
+
+    remaining = max_wrong
+
+    while remaining >= 0:
+        clear_screen()
+        display_state(secret, correct_letters, wrong_letters, remaining)
+
+        # حالة الفوز؟
+        if all(ch in correct_letters for ch in secret):
+            print("\n🎉 فوز! اكتشفت الكلمة:", secret)
+            return True
+
+        # حالة الخسارة؟
+        if remaining == 0:
+            print("\n❌ خسرت! الكلمة كانت:", secret)
+            return False
+
+        guess = get_valid_guess(used_letters=correct_letters | wrong_letters,
+                                alphabet=alphabet)
+
+        if guess in secret:
+            correct_letters.add(guess)
+        else:
+            wrong_letters.add(guess)
+            remaining -= 1
+
+def ask_yes_no(prompt):
+    """سؤال نعم/لا بسيط."""
+    while True:
+        ans = input(f"{prompt} (y/n): ").strip().lower()
+        if ans in ("y", "yes", "نعم", "ا", "ايوا"):
+            return True
+        if ans in ("n", "no", "لا"):
+            return False
+        print("يرجى الإجابة بـ y أو n.")
+
+def main():
+    # محاولات افتراضية (6 أخطاء ممكنة)
+    max_wrong = len(HANGMANPICS) - 1
+
+    # محاولة تحميل كلمات من ملف (اختياري)
+    # ضع ملفًا باسم words.txt في نفس المجلد، سطر لكل كلمة.
+    words = load_words_from_file("words.txt")
+    if not words:
+        words = DEFAULT_WORDS
+
+    print("=== Hangman | لعبة الرجل المشنوق ===")
+    print("نصائح:")
+    print("- يمكنك إضافة كلماتك الخاصة في ملف words.txt (سطر لكل كلمة).")
+    print("- تدعم نسخًا عربية/إنجليزية من الكلمات.")
+
+    while True:
+        _ = play_round(words, max_wrong=max_wrong)
+        if not ask_yes_no("تلعب مرة أخرى؟"):
+            print("مع السلامة 👋")
+            break
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\nتم الإنهاء.")
+        sys.exit(0)
