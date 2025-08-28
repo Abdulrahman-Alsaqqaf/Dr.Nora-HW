@@ -1,0 +1,59 @@
+# 1. استيراد المكتبات المهمة
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 2. قراءة البيانات (CSV كمثال)
+# غير "data.csv" إلى ملفك
+df = pd.read_csv("data.csv")
+
+# 3. نظرة عامة على البيانات
+print("=== حجم البيانات ===")
+print(df.shape)
+
+print("\n=== معلومات الأعمدة ===")
+print(df.info())
+
+print("\n=== أول 5 صفوف من البيانات ===")
+print(df.head())
+
+# 4. إحصائيات وصفية
+print("\n=== إحصائيات وصفية ===")
+print(df.describe())
+
+# 5. القيم المفقودة
+print("\n=== القيم المفقودة ===")
+print(df.isnull().sum())
+
+# 6. التوزيع (Histogram) لمتغير عددي
+numeric_cols = df.select_dtypes(include=np.number).columns
+if len(numeric_cols) > 0:
+    for col in numeric_cols[:3]:  # نرسم أول 3 أعمدة رقمية كمثال
+        plt.figure(figsize=(6,4))
+        df[col].hist(bins=20, color='skyblue', edgecolor='black')
+        plt.title(f"Histogram of {col}")
+        plt.xlabel(col)
+        plt.ylabel("Frequency")
+        plt.show()
+
+# 7. Boxplot لاكتشاف القيم الشاذة
+for col in numeric_cols[:3]:
+    plt.figure(figsize=(6,4))
+    sns.boxplot(x=df[col], color='orange')
+    plt.title(f"Boxplot of {col}")
+    plt.show()
+
+# 8. Scatter Plot (علاقة بين متغيرين عدديين)
+if len(numeric_cols) >= 2:
+    plt.figure(figsize=(6,4))
+    sns.scatterplot(x=numeric_cols[0], y=numeric_cols[1], data=df)
+    plt.title(f"Scatter plot: {numeric_cols[0]} vs {numeric_cols[1]}")
+    plt.show()
+
+# 9. مصفوفة الارتباط (Correlation Heatmap)
+plt.figure(figsize=(8,6))
+corr = df.corr(numeric_only=True)
+sns.heatmap(corr, annot=True, cmap="coolwarm", fmt=".2f")
+plt.title("Correlation Heatmap")
+plt.show()
